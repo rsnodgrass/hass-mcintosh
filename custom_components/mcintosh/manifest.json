@@ -1,0 +1,14 @@
+{
+    "domain": "mcintosh",
+    "name": "McIntosh and Lyndorf Integration",
+    "version": "0.0.1",
+    "documentation": "https://github.com/rsnodgrass/hass-mcintosh",
+    "requirements": ["pymcintosh", "ratelimit"],
+    "dependencies": [],
+    "codeowners": ["rsnodgrass@"],
+    "iot_class": "local_polling",
+    "supported_brands": {
+        "mcintosh": "McIntosh",
+        "lyngdorf": "Lyngdorf"
+    },
+}
