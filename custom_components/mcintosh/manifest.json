@@ -1,6 +1,6 @@
 {
     "domain": "mcintosh",
-    "name": "McIntosh and Lyndorf Integration",
+    "name": "McIntosh and Lyndorf Audio",
     "version": "0.0.1",
     "documentation": "https://github.com/rsnodgrass/hass-mcintosh",
     "requirements": ["pymcintosh", "ratelimit"],
