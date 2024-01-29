@@ -32,7 +32,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_model(
+    async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the initial step of selecting model to configure."""
@@ -51,51 +51,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             name = user_input.get(CONF_NAME).strip()
             model_id = user_input[CONF_MODEL]
+            url = user_input.get(CONF_URL).strip()
+            baud = user_input.get(CONF_BAUD_RATE)
 
             try:
                 if model_id not in mcintosh_models:
                     raise UnsupportedError
 
-            except ConnectionError:
-                errors = ERROR_CANNOT_CONNECT
-            except UnsupportedError:
-                errors = ERROR_UNSUPPORTED
-            else:
-                return self.async_create_entry(
-                    title=f'McIntosh {name}',
-                    data={CONF_MODEL: model_id, CONF_NAME: name},
-                )
-
-        # no user input yet, so display the form
-        return self.async_show_form(
-            step_id='model',
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_MODEL, default=mcintosh_models[0]
-                    ): selector.SelectSelector(
-                        selector.SelectSelectorConfig(
-                            options=mcintosh_models,
-                            mode=selector.SelectSelectorMode.DROPDOWN,
-                        )
-                    ),
-                    vol.Optional(CONF_NAME, default=False): cv.string,
-                }
-            ),
-            errors=errors,
-        )
-
-    async def async_step_connection(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle user initiated device additions."""
-        errors: dict[str, str] | None = None
-
-        if user_input:
-            url = user_input.get(CONF_URL).strip()
-            baud = user_input.get(CONF_BAUD_RATE)
-
-            try:
                 config_overrides = {}
                 if baud:
                     config_overrides[CONFIG.baudrate] = baud
@@ -110,20 +72,41 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
                 client.is_connected()
 
+                # await self.async_set_unique_id(client.serial)
+                # self._abort_if_unique_id_configured()
+
             except ConnectionError:
                 errors = ERROR_CANNOT_CONNECT
             except UnsupportedError:
                 errors = ERROR_UNSUPPORTED
             else:
-                await self.async_set_unique_id(user_input[CONF_URL])
-                self._abort_if_unique_id_configured()
-
                 return self.async_create_entry(
-                    title=f'McIntosh {user_input[CONF_URL]}', data={CONF_URL: url}
+                    title=f'McIntosh {name}',
+                    data={
+                        CONF_MODEL: model_id,
+                        CONF_NAME: name,
+                        CONF_URL: url,
+                        CONF_BAUD_RATE: baud,
+                    },
                 )
 
+        # no user input yet, so display the form
         return self.async_show_form(
-            step_id='connection',
-            data_schema=vol.Schema({vol.Required(CONF_URL, default=DEFAULT_URL): str}),
+            step_id='user',
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_NAME, default=False): cv.string,
+                    vol.Required(
+                        CONF_MODEL, default=mcintosh_models[0]
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=mcintosh_models,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
+                    vol.Required(CONF_URL, default=False): cv.string,
+                    vol.Optional(CONF_BAUD_RATE): cv.int,
+                }
+            ),
             errors=errors,
         )
