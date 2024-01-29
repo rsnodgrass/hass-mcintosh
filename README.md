@@ -35,15 +35,8 @@ Configuration is similar to the monoprice component here: https://www.home-assis
 ```yaml
 media_player:
   - platform: mcintosh
-    type: mcintosh8
-    port: /dev/ttyUSB0
-    zones:
-      11:
-        name: "Main Bedroom"
-      12:
-        name: "Living Room"
-      13:
-        name: "Kitchen"
+    model: mcintosh_mx160
+    url: /dev/ttyUSB0
     sources:
       1:
         name: "Sonos"
