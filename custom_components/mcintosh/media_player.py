@@ -28,11 +28,13 @@ from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.typing import HomeAssistantType
-from pyavcontrol import CONFIG, construct_async_client
+from pyavcontrol import CONFIG, DeviceClient, construct_async_client
 from ratelimit import limits
-from serial import SerialException
 
 from .const import (
+    CONF_BAUD_RATE,
+    CONF_MODEL,
+    CONF_URL,
     DOMAIN,
     SERVICE_JOIN,
     SERVICE_RESTORE,
@@ -53,8 +55,6 @@ SUPPORTED_ZONE_FEATURES = (
     | SUPPORT_SELECT_SOURCE
 )
 
-CONF_SERIAL_CONFIG = 'rs232'
-CONF_SERIAL_NUMBER = 'serial_number'  # allow for true unique id
 CONF_SOURCES = 'sources'
 
 # Valid source ids:
@@ -75,12 +75,11 @@ SERIAL_CONFIG_SCHEMA = vol.Schema(
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Optional(CONF_NAME, default='McIntosh House Audio'): cv.string,
-        vol.Optional(CONF_TYPE, default='mcintosh8'): vol.In(SUPPORTED_AMP_TYPES),
-        vol.Required(CONF_PORT): cv.string,
-        vol.Optional(CONF_ENTITY_NAMESPACE, default='mcintosh8'): cv.string,
-        vol.Required(CONF_ZONES): vol.Schema({ZONE_IDS: ZONE_SCHEMA}),
-        vol.Required(CONF_SOURCES): vol.Schema({SOURCE_IDS: SOURCE_SCHEMA}),
-        vol.Optional(CONF_SERIAL_CONFIG): SERIAL_CONFIG_SCHEMA,
+        vol.Optional(CONF_MODEL, default='mcintosh_mx160'): vol.In(SUPPORTED_AMP_TYPES),
+        #        vol.Required(CONF_URL): cv.string,
+        #        vol.Optional(CONF_ENTITY_NAMESPACE, default='mcintosh8'): cv.string,
+        #        vol.Required(CONF_ZONES): vol.Schema({ZONE_IDS: ZONE_SCHEMA}),
+        #        vol.Required(CONF_SOURCES): vol.Schema({SOURCE_IDS: SOURCE_SCHEMA})
     }
 )
 
@@ -93,19 +92,20 @@ MINUTES = 60
 async def async_setup_platform(
     hass: HomeAssistantType, config, async_add_entities, discovery_info=None
 ):
-    port = config.get(CONF_PORT)
-    model_id = config.get(CONF_TYPE)
+    url = config.get(CONF_URL)
+    model_id = config.get(CONF_MODEL)
 
     try:
         """Set up the McIntosh amplifier platform."""
-        namespace = config.get(
-            CONF_ENTITY_NAMESPACE
-        )  # FIXME: should this defualt to mode_name
+        namespace = 'mcintosh'  # FIXME
 
-        # allow manually overriding any of the serial configuration using the 'rs232' key
-        config_overrides = config.get(CONF_SERIAL_CONFIG, {})
+        config_overrides = {}
+        if baud := config.get(CONF_BAUD_RATE):
+            config_overrides[CONFIG.baudrate] = baud
+
+        # connect to the device to confirm everything works
         client = await construct_async_client(
-            model_id, port, hass.loop, connection_config=config_overrides
+            model_id, url, hass.loop, connection_config=config_overrides
         )
 
         # FIXME: default to the name of the device...from pyavcontrol client
@@ -118,7 +118,7 @@ async def async_setup_platform(
         await async_setup_services(hass)
 
     except Exception as e:
-        LOG.error(f"Failed connecting to '{model_id}' at {port}", e)
+        LOG.error(f"Failed connecting to '{model_id}' at {url}", e)
         raise PlatformNotReady
 
 

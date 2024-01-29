@@ -1,14 +1,13 @@
 {
     "domain": "mcintosh",
-    "name": "McIntosh and Lyndorf Audio",
-    "version": "0.0.1",
+    "name": "McIntosh Audio",
+    "version": "0.1.0",
     "documentation": "https://github.com/rsnodgrass/hass-mcintosh",
-    "requirements": ["pymcintosh", "ratelimit"],
+    "requirements": ["pyavcontrol", "ratelimit"],
     "dependencies": [],
     "codeowners": ["rsnodgrass@"],
     "iot_class": "local_polling",
     "supported_brands": {
-        "mcintosh": "McIntosh",
-        "lyngdorf": "Lyngdorf"
+        "mcintosh": "McIntosh"
     },
 }
