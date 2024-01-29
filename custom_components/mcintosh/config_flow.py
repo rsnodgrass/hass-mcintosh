@@ -12,7 +12,8 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
-from pyavcontrol import CONFIG, DeviceModelLibrary, construct_async_client
+from pyavcontrol import DeviceModelLibrary, construct_async_client
+from pyavcontrol.config import CONFIG
 
 from .const import CONF_BAUD_RATE, CONF_MODEL, DEFAULT_URL, DOMAIN
 
