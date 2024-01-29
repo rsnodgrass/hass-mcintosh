@@ -10,6 +10,9 @@
 [![Buy Me A Coffee](https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg)](https://buymeacoffee.com/DYks67r)
 
 
+![McIntosh Logo](https://github.com/rsnodgrass/hass-mcintosh/blob/master/brands/logo.png?raw=true)
+
+
 ## Support
 
 Visit the [community support discussion thread](https://community.home-assistant.io/t/mcintosh-dayton-audio-sonance-multi-zone-amps/450908) for issues with this integration. If you have a code change or bug fix, feel free to submit a Pull Request.
