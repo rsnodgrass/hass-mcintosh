@@ -119,8 +119,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._abort_if_unique_id_configured()
 
                 return self.async_create_entry(
-                    title=f'McIntosh {user_input[CONF_URL]}',
-                    data={CONF_URL: url},
+                    title=f'McIntosh {user_input[CONF_URL]}', data={CONF_URL: url}
                 )
 
         return self.async_show_form(
