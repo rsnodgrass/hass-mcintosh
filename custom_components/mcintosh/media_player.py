@@ -16,10 +16,8 @@ from homeassistant.components.media_player.const import (
 )
 from homeassistant.const import (
     ATTR_ENTITY_ID,
-    CONF_ENTITY_NAMESPACE,
     CONF_NAME,
-    CONF_PORT,
-    CONF_TYPE,
+    CONF_URL,
     STATE_OFF,
     STATE_ON,
     STATE_UNKNOWN,
@@ -31,16 +29,7 @@ from homeassistant.helpers.typing import HomeAssistantType
 from pyavcontrol import CONFIG, DeviceClient, construct_async_client
 from ratelimit import limits
 
-from .const import (
-    CONF_BAUD_RATE,
-    CONF_MODEL,
-    CONF_URL,
-    DOMAIN,
-    SERVICE_JOIN,
-    SERVICE_RESTORE,
-    SERVICE_SNAPSHOT,
-    SERVICE_UNJOIN,
-)
+from .const import CONF_BAUD_RATE, CONF_MODEL, CONF_URL, DOMAIN
 
 LOG = logging.getLogger(__name__)
 
@@ -65,6 +54,9 @@ SOURCE_SCHEMA = vol.Schema(
     {vol.Required(CONF_NAME, default='Unknown Source'): cv.string}
 )
 
+SUPPORTED_MODELS = ['mcintosh_mx160']
+BAUD_RATES = [9600, 115200]  # FIXME: import from pyavcontrol
+
 SERIAL_CONFIG_SCHEMA = vol.Schema(
     {
         vol.Optional(CONFIG.baudrate): vol.In(BAUD_RATES),
@@ -74,8 +66,8 @@ SERIAL_CONFIG_SCHEMA = vol.Schema(
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
-        vol.Optional(CONF_NAME, default='McIntosh House Audio'): cv.string,
-        vol.Optional(CONF_MODEL, default='mcintosh_mx160'): vol.In(SUPPORTED_AMP_TYPES),
+        vol.Optional(CONF_NAME, default='McIntosh'): cv.string,
+        vol.Optional(CONF_MODEL, default='mcintosh_mx160'): vol.In(SUPPORTED_MODELS)
         #        vol.Required(CONF_URL): cv.string,
         #        vol.Optional(CONF_ENTITY_NAMESPACE, default='mcintosh8'): cv.string,
         #        vol.Required(CONF_ZONES): vol.Schema({ZONE_IDS: ZONE_SCHEMA}),
@@ -115,33 +107,9 @@ async def async_setup_platform(
         entities = [Amplifier(namespace, player_name, client)]
         async_add_entities(entities, True)
 
-        await async_setup_services(hass)
-
     except Exception as e:
         LOG.error(f"Failed connecting to '{model_id}' at {url}", e)
         raise PlatformNotReady
-
-
-async def async_setup_services(hass: HomeAssistantType):
-    # setup the service calls
-    platform = entity_platform.current_platform.get()
-
-    async def service_call_dispatcher(service_call):
-        if all_entities := await platform.async_extract_from_service(service_call):
-            for entity in all_entities:
-                if service_call.service == SERVICE_SNAPSHOT:
-                    await entity.async_snapshot()
-                elif service_call.service == SERVICE_RESTORE:
-                    await entity.async_restore()
-
-    # register the save/restore snapshot services
-    for service_call_name in (SERVICE_SNAPSHOT, SERVICE_RESTORE):
-        hass.services.async_register(
-            DOMAIN,
-            service_call_name,
-            service_call_dispatcher,
-            schema=SERVICE_CALL_SCHEMA,
-        )
 
 
 class Amplifier(MediaPlayerEntity):
