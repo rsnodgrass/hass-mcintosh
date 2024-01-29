@@ -10,8 +10,7 @@
 [![Buy Me A Coffee](https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg)](https://buymeacoffee.com/DYks67r)
 
 
-![McIntosh Logo](https://github.com/rsnodgrass/hass-mcintosh/blob/master/brands/logo.png?raw=true)
-
+![McIntosh Logo](https://raw.githubusercontent.com/rsnodgrass/hass-mcintosh/main/brands/logo.png)
 
 ## Support
 
