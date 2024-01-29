@@ -7,5 +7,5 @@ PLATFORMS = ['media_player']
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
-    """Set up the McIntosh Multi-Zone Amplifier component."""
+    """Set up the McIntosh component."""
     return True
