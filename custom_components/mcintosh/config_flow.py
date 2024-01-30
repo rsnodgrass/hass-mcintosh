@@ -49,7 +49,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         mcintosh_models = [x for x in supported_models if x.startswith('mcintosh')]
         # mcintosh_models = ['mcintosh_mx160']
 
-        LOG.warning(f'Starting McIntosh config flow: {mcintosh_models}')
+        LOG.info(f'Starting McIntosh config flow: {mcintosh_models}')
 
         if user_input is not None:
             name = user_input.get(CONF_NAME).strip()
@@ -65,23 +65,22 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if baud:
                     config_overrides[CONFIG.baudrate] = baud
 
-                model_id = 'mcintosh_mx160'  # FIXME (get from step 1)
-
                 loop = asyncio.get_event_loop()
 
                 # connect to the device to confirm everything works
                 client = await construct_async_client(
                     model_id, url, loop, connection_config=config_overrides
                 )
-                client.is_connected()
 
                 # await self.async_set_unique_id(client.serial)
                 # self._abort_if_unique_id_configured()
 
-            except ConnectionError:
+            except ConnectionError as e:
                 errors = ERROR_CANNOT_CONNECT
-            except UnsupportedError:
+                LOG.warning(f'Failed config_flow: {errors}', e)
+            except UnsupportedError as e:
                 errors = ERROR_UNSUPPORTED
+                LOG.warning(f'Failed config_flow: {errors}', e)
             else:
                 return self.async_create_entry(
                     title=f'McIntosh {name}',
