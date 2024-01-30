@@ -1,6 +1,7 @@
 name: Lint Python
 
 on:
+  pull_request:
   push:
     branches:
       - main
@@ -10,10 +11,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
         with:
           python-version: 3.11
 
@@ -22,3 +25,8 @@ jobs:
 
       - name: Lint code
         run: flake8 .
+
+      # FIXME: see https://github.com/stefanzweifel/git-auto-commit-action
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Apply flake8 changes
