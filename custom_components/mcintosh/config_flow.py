@@ -7,9 +7,6 @@ from typing import Any, Dict
 
 import voluptuous as vol
 from homeassistant import config_entries
-
-# from pyavcontrol.const import BAUD_RATES
-from homeassistant.components.zha import BAUD_RATES
 from homeassistant.const import CONF_NAME, CONF_URL
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
@@ -18,6 +15,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 from pyavcontrol import DeviceModelLibrary
 from pyavcontrol.config import CONFIG
+from pyavcontrol.const import BAUD_RATES
 from pyavcontrol.helper import construct_async_client
 
 from .const import CONF_BAUD_RATE, CONF_MODEL, DEFAULT_URL, DOMAIN

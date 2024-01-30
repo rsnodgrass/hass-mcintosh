@@ -5,7 +5,7 @@
     "documentation": "https://github.com/rsnodgrass/hass-mcintosh",
     "requirements": ["pyavcontrol", "ratelimit"],
     "dependencies": [],
-    "codeowners": ["rsnodgrass"],
+    "codeowners": ["rsnodgrass@"],
     "iot_class": "local_polling",
     "config_flow": true,
     "supported_brands": {
