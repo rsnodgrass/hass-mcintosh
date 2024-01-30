@@ -48,6 +48,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         mcintosh_models = [x for x in supported_models if x.startswith('mcintosh')]
         # mcintosh_models = ['mcintosh_mx160']
 
+        LOG.warning(f'Starting McIntosh config flow: {mcintosh_models}')
+
         if user_input is not None:
             name = user_input.get(CONF_NAME).strip()
             model_id = user_input[CONF_MODEL]
@@ -95,16 +97,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id='user',
             data_schema=vol.Schema(
                 {
-                    vol.Optional(CONF_NAME, default=False): cv.string,
-                    vol.Required(
-                        CONF_MODEL, default=mcintosh_models[0]
-                    ): selector.SelectSelector(
+                    vol.Optional(CONF_NAME, default='McIntosh Audio'): cv.string,
+                    vol.Required(CONF_MODEL): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=mcintosh_models,
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         )
                     ),
-                    vol.Required(CONF_URL, default=False): cv.string,
+                    vol.Required(
+                        CONF_URL, default='socket://mcintosh.local:4999'
+                    ): cv.string,
                     vol.Optional(CONF_BAUD_RATE): cv.int,
                 }
             ),
