@@ -1,10 +1,13 @@
 {
   "config": {
     "step": {
-      "device": {
-        "title": "McIntosh",
+      "user": {
+        "title": "Configure McIntosh",
         "data": {
-          "url": "pyserial compatible URL"
+          "name": "Name of the device",
+          "model_id": "McIntosh model to connect to",
+          "url": "pySerial compatible URL (e.g. socket://<host>:<port> or /dev/ttyUSB0)",
+          "baud": "Baud rate (if connecting locally via RS232 /dev/tty)"
         }
       }
     },
@@ -14,6 +17,19 @@
     },
     "abort": {
       "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure McIntosh",
+        "data": {
+          "name": "Name of the device",
+          "model_id": "McIntosh model to connect to",
+          "url": "pySerial compatible URL (e.g. socket://<host>:<port> or /dev/ttyUSB0)",
+          "baud": "Baud rate (if connecting locally via RS232 /dev/tty)"
+        }
+      }
     }
   }
 }
