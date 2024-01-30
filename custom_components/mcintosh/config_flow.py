@@ -7,6 +7,9 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
+
+# from pyavcontrol.const import BAUD_RATES
+from homeassistant.components.zha import BAUD_RATES
 from homeassistant.const import CONF_NAME, CONF_URL
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
@@ -105,7 +108,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         )
                     ),
                     vol.Required(CONF_URL, default=DEFAULT_URL): cv.url,
-                    vol.Optional(CONF_BAUD_RATE): cv.positive_int,
+                    vol.Optional(CONF_BAUD_RATE): vol.In(BAUD_RATES),
                 }
             ),
             errors=errors,

@@ -1,10 +1,9 @@
-"""Home Assistant Media Player for McIntosh, Monoprice and Dayton Audio multi-zone amplifiers"""
-
-# FIXME: Add a MediaPlayer for the entire McIntosh unit to enable power on/off, mute, etc all zones
+"""Home Assistant McIntosh Media Player"""
 
 import logging
 
 import voluptuous as vol
+from homeassistant import config_entries
 from homeassistant.components.media_player import PLATFORM_SCHEMA, MediaPlayerEntity
 from homeassistant.components.media_player.const import (
     SUPPORT_SELECT_SOURCE,
@@ -22,11 +21,12 @@ from homeassistant.const import (
     STATE_ON,
     STATE_UNKNOWN,
 )
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import entity_platform
-from homeassistant.helpers.typing import HomeAssistantType
-from pyavcontrol import CONFIG, DeviceClient, construct_async_client
+from pyavcontrol import DeviceClient
+from pyavcontrol.config import CONFIG
+from pyavcontrol.helper import construct_async_client
 from ratelimit import limits
 
 from .const import CONF_BAUD_RATE, CONF_MODEL, CONF_URL, DOMAIN
@@ -55,66 +55,49 @@ SOURCE_SCHEMA = vol.Schema(
 )
 
 SUPPORTED_MODELS = ['mcintosh_mx160']
-BAUD_RATES = [9600, 115200]  # FIXME: import from pyavcontrol
-
-SERIAL_CONFIG_SCHEMA = vol.Schema(
-    {
-        vol.Optional(CONFIG.baudrate): vol.In(BAUD_RATES),
-        vol.Optional(CONFIG.timeout): cv.small_float,
-    }
-)
-
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
-    {
-        vol.Optional(CONF_NAME, default='McIntosh'): cv.string,
-        vol.Optional(CONF_MODEL, default='mcintosh_mx160'): vol.In(SUPPORTED_MODELS)
-        #        vol.Required(CONF_URL): cv.string,
-        #        vol.Optional(CONF_ENTITY_NAMESPACE, default='mcintosh8'): cv.string,
-        #        vol.Required(CONF_ZONES): vol.Schema({ZONE_IDS: ZONE_SCHEMA}),
-        #        vol.Required(CONF_SOURCES): vol.Schema({SOURCE_IDS: SOURCE_SCHEMA})
-    }
-)
 
 # schema for media player service calls
 SERVICE_CALL_SCHEMA = vol.Schema({ATTR_ENTITY_ID: cv.comp_entity_ids})
 
 MINUTES = 60
+MAX_VOLUME = 100  # FIXME
 
 
-async def async_setup_platform(
-    hass: HomeAssistantType, config, async_add_entities, discovery_info=None
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: config_entries.ConfigEntry,
+    async_add_entities,
 ):
-    url = config.get(CONF_URL)
+    """Setup sensors from a config entry created in the integrations UI."""
+    config = hass.data[DOMAIN][config_entry.entry_id]
+
+    namespace = 'mcintosh'  # FIXME
     model_id = config.get(CONF_MODEL)
+    url = config.get(CONF_URL)
+
+    config_overrides = {}
+    if baud := config.get(CONF_BAUD_RATE):
+        config_overrides[CONFIG.baudrate] = baud
 
     try:
-        """Set up the McIntosh amplifier platform."""
-        namespace = 'mcintosh'  # FIXME
-
-        config_overrides = {}
-        if baud := config.get(CONF_BAUD_RATE):
-            config_overrides[CONFIG.baudrate] = baud
-
-        # connect to the device to confirm everything works
+        # connect to the device
         client = await construct_async_client(
             model_id, url, hass.loop, connection_config=config_overrides
         )
-
-        # FIXME: default to the name of the device...from pyavcontrol client
-        player_name = config.get(CONF_NAME)
-
-        # add Media Player for the main control unit
-        entities = [Amplifier(namespace, player_name, client)]
-        async_add_entities(entities, True)
 
     except Exception as e:
         LOG.error(f"Failed connecting to '{model_id}' at {url}", e)
         raise PlatformNotReady
 
+    # FIXME: default to the name of the device...from pyavcontrol client
+    player_name = config.get(CONF_NAME)
 
-class Amplifier(MediaPlayerEntity):
-    """Representation of the amp."""
+    # add Media Player for the main control unit
+    entities = [McIntoshMediaPlayer(namespace, player_name, client)]
+    async_add_entities(entities, True)  # update_before_add=True)
 
+
+class McIntoshMediaPlayer(MediaPlayerEntity):
     def __init__(self, namespace: str, name: str, client: DeviceClient):
         self._name = name
         self._client = client
@@ -196,7 +179,6 @@ class Amplifier(MediaPlayerEntity):
         return self._source_names
 
     async def async_select_source(self, source):
-        """Set input source for all zones."""
         if source not in self._source_name_to_id:
             LOG.warning(
                 f"Selected source '{source}' not valid for {self._name}, ignoring! Sources: {self._source_name_to_id}"
@@ -206,31 +188,13 @@ class Amplifier(MediaPlayerEntity):
         self._client.source.set(source)
 
     async def async_turn_on(self):
-        """Turn the media player on."""
         self._client.power.on()
 
         # schedule a poll of the status of the zone ASAP to pickup volume levels/etc
         self.async_schedule_update_ha_state(force_refresh=True)
 
     async def async_turn_off(self):
-        """Turn the media player off."""
         self._client.power.off()
-
-    async def async_snapshot(self):
-        """Save zone's current state."""
-        self._status_snapshot = await self._amp.zone_status(self._zone_id)
-        LOG.info(f'Saved state snapshot for {self.zone_info}')
-
-    async def async_restore(self):
-        """Restore saved state."""
-        if self._status_snapshot:
-            await self._amp.restore_zone(self._status_snapshot)
-            self.async_schedule_update_ha_state(force_refresh=True)
-            LOG.info(f'Restored previous state for {self.zone_info}')
-        else:
-            LOG.warning(
-                f'Restore service called for {self.zone_info}, but no snapshot previously saved.'
-            )
 
     async def async_mute_volume(self, mute):
         """Mute (true) or unmute (false) media player."""
@@ -238,21 +202,15 @@ class Amplifier(MediaPlayerEntity):
 
     async def async_set_volume_level(self, volume):
         """Set volume level, range 0—1.0"""
-        # FIXME: translate to McIntosh
+        # FIXME: translate to McIntosh...how to get max volume?
         amp_volume = int(volume * MAX_VOLUME)
         LOG.debug(f'Setting volume to {amp_volume} (HA volume {volume})')
         self._client.volume.set(volume={amp_volume})
 
     async def async_volume_up(self):
-        """Volume up the media player."""
         self._client.volume.up()
 
-        # FIXME: call the volume up API on the amp object, instead of manually increasing volume
-        # reminder the volume is on the amplifier scale (0-38), not Home Assistants (1-100)
-        await self._amp.set_volume(self._zone_id, min(volume + 1, MAX_VOLUME))
-
     async def async_volume_down(self):
-        """Volume down media player."""
         self._client.volume.down()
 
     @property
