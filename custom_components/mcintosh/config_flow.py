@@ -105,8 +105,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         )
                     ),
-                    vol.Required(CONF_URL, default=DEFAULT_URL): cv.string,
-                    vol.Optional(CONF_BAUD_RATE): cv.int,
+                    vol.Required(CONF_URL, default=DEFAULT_URL): cv.url,
+                    vol.Optional(CONF_BAUD_RATE): cv.positive_int,
                 }
             ),
             errors=errors,
