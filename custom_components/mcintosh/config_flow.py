@@ -12,8 +12,9 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
-from pyavcontrol import DeviceModelLibrary, construct_async_client
+from pyavcontrol import DeviceModelLibrary
 from pyavcontrol.config import CONFIG
+from pyavcontrol.helper import construct_async_client
 
 from .const import CONF_BAUD_RATE, CONF_MODEL, DEFAULT_URL, DOMAIN
 
@@ -104,9 +105,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         )
                     ),
-                    vol.Required(
-                        CONF_URL, default='socket://mcintosh.local:4999'
-                    ): cv.string,
+                    vol.Required(CONF_URL, default=DEFAULT_URL): cv.string,
                     vol.Optional(CONF_BAUD_RATE): cv.int,
                 }
             ),
