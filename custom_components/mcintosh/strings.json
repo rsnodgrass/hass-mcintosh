@@ -5,7 +5,7 @@
         "title": "Configure McIntosh",
         "data": {
           "name": "Name of the device",
-          "model_id": "McIntosh model to connect to",
+          "model_id": "McIntosh model",
           "url": "pySerial compatible URL (e.g. socket://<host>:<port> or /dev/ttyUSB0)",
           "baud": "Baud rate (if connecting locally via RS232 /dev/tty)"
         }
@@ -25,7 +25,7 @@
         "title": "Configure McIntosh",
         "data": {
           "name": "Name of the device",
-          "model_id": "McIntosh model to connect to",
+          "model_id": "McIntosh model",
           "url": "pySerial compatible URL (e.g. socket://<host>:<port> or /dev/ttyUSB0)",
           "baud": "Baud rate (if connecting locally via RS232 /dev/tty)"
         }

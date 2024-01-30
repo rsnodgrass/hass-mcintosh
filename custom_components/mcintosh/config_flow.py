@@ -59,7 +59,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return mcintosh_models
 
     @staticmethod
-    def schema(supported_models):
+    def config_schema(supported_models):
+        # FIXME: do we need to repopulate with existing config?
+        #  e.g. default=self._config_entry.options.get(CONF_URL),
         return vol.Schema(
             {
                 vol.Optional(CONF_NAME, default='McIntosh Audio'): cv.string,
@@ -120,22 +122,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors = ERROR_UNSUPPORTED
                 LOG.warning(f'Failed config_flow: {errors}', e)
             else:
-                # FIXME: this may be able to be simplified by just saving ALL user_input
-                # which is what I see some config flows doing.
-                return self.async_create_entry(
-                    title=f'McIntosh {name}',
-                    data={
-                        CONF_MODEL: model_id,
-                        CONF_NAME: name,
-                        CONF_URL: url,
-                        CONF_BAUD_RATE: baud,
-                    },
-                )
+                return self.async_create_entry(title='', data=user_input)
 
+        LOG.info(f'Displaying standard form')
         # no user input yet, so display the form
         return self.async_show_form(
             step_id='user',
-            data_schema=ConfigFlow.schema(mcintosh_models),
+            data_schema=ConfigFlow.config_schema(mcintosh_models),
             errors=errors,
         )
 
@@ -164,6 +157,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id='init',
-            data_schema=ConfigFlow.schema(supported_models),
+            data_schema=ConfigFlow.config_schema(supported_models),
             errors=errors,
         )
