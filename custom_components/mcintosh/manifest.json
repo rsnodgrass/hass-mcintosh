@@ -3,7 +3,7 @@
     "name": "McIntosh Audio",
     "version": "0.1.0",
     "documentation": "https://github.com/rsnodgrass/hass-mcintosh",
-    "requirements": ["pyavcontrol", "ratelimit"],
+    "requirements": ["pyavcontrol>=0.1.1", "ratelimit"],
     "dependencies": [],
     "codeowners": ["@rsnodgrass"],
     "iot_class": "local_polling",

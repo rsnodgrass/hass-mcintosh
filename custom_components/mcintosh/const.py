@@ -1,4 +1,3 @@
-NAME = 'McIntosh'
 DOMAIN = 'mcintosh'
 
 DEFAULT_URL = 'socket://mcintosh.local:4166'
