@@ -5,6 +5,7 @@
     "config_flow": true,
     "documentation": "https://github.com/rsnodgrass/hass-mcintosh",
     "iot_class": "local_polling",
+    "issue_tracker": "https://github.com/rsnodgrass/hass-mcintosh/issues",
     "requirements": ["pyavcontrol>=0.1.1", "ratelimit"],
     "version": "0.1.0"
 }
