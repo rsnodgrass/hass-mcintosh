@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import logging
 import asyncio
-from typing import Any
+from typing import Any, TypedDict
 
 import voluptuous as vol
-from homeassistant import config_entries
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.const import CONF_NAME, CONF_URL
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
@@ -26,6 +26,15 @@ ERROR_CANNOT_CONNECT = {'base': 'cannot_connect'}
 ERROR_UNSUPPORTED = {'base': 'unsupported'}
 
 
+class EntryData(TypedDict, total=False):
+    """TypedDict for config_entry data."""
+
+    host: str
+    jid: str
+    model: str
+    name: str
+
+
 class UnsupportedError(HomeAssistantError):
     """Error for unsupported device types."""
 
@@ -43,9 +52,7 @@ def filter_models(prefix: str):
     return filtered_models
 
 
-class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Config flow for Mcintosh."""
-
+class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     #    @staticmethod
@@ -135,10 +142,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
-class OptionsFlowHandler(config_entries.OptionsFlow):
+class McIntoshOptionsFlow(OptionsFlow):
     """Handles options flow for the component after it has already been setup."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+    def __init__(self, config_entry: ConfigEntry) -> None:
         self._config_entry = config_entry
 
     async def async_step_init(
@@ -160,6 +167,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id='init',
-            data_schema=ConfigFlow.config_schema(supported_models),
+            data_schema=McIntoshConfigFlow.config_schema(supported_models),
             errors=errors,
         )

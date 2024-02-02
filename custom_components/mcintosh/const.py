@@ -1,7 +1,15 @@
-DOMAIN = 'mcintosh'
+"""Constants for the McIntosh integration"""
+from __future__ import annotations
 
-DEFAULT_URL = 'socket://mcintosh.local:4166'
+from typing import Final
 
-CONF_URL = 'url'
-CONF_BAUD_RATE = 'baudrate'
-CONF_MODEL = 'model_id'
+DOMAIN: Final[str] = 'mcintosh'
+
+DEFAULT_URL: Final = 'socket://mcintosh.local:4166'
+
+CONF_URL: Final = 'url'
+CONF_BAUD_RATE: Final = 'baudrate'
+CONF_MODEL: Final = 'model_id'
+CONF_SOURCES: Final = 'sources'
+
+COMPATIBLE_MODELS: list[str] = []

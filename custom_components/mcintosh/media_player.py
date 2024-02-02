@@ -1,8 +1,8 @@
 """Home Assistant McIntosh Media Player"""
 
 import logging
+from typing import Final
 
-from homeassistant import config_entries
 from homeassistant.components.media_player import MediaPlayerEntity
 from homeassistant.components.media_player.const import (
     SUPPORT_SELECT_SOURCE,
@@ -12,15 +12,14 @@ from homeassistant.components.media_player.const import (
     SUPPORT_VOLUME_SET,
     SUPPORT_VOLUME_STEP,
 )
-from homeassistant.const import CONF_NAME, CONF_URL, STATE_OFF, STATE_ON, STATE_UNKNOWN
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_NAME, STATE_OFF, STATE_ON, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import PlatformNotReady
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from pyavcontrol import DeviceClient
-from pyavcontrol.config import CONFIG
-from pyavcontrol.helper import construct_async_client
-from ratelimit import limits
 
-from .const import CONF_BAUD_RATE, CONF_MODEL, CONF_URL, DOMAIN
+from . import McIntoshData
+from .const import CONF_MODEL, DOMAIN
 
 LOG = logging.getLogger(__name__)
 
@@ -35,52 +34,59 @@ SUPPORTED_ZONE_FEATURES = (
     | SUPPORT_SELECT_SOURCE
 )
 
-CONF_SOURCES = 'sources'
-
-SUPPORTED_MODELS = ['mcintosh_mx160']
-
-MINUTES = 60
+MINUTES: Final = 60
 MAX_VOLUME = 100  # FIXME
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: config_entries.ConfigEntry,
-    async_add_entities,
-):
-    """Setup sensors from a config entry created in the integrations UI."""
-    config = hass.data[DOMAIN][config_entry.entry_id]
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    data: McIntoshData = hass.data[DOMAIN][config_entry.entry_id]
 
-    namespace = 'mcintosh'  # FIXME
-    model_id = config.get(CONF_MODEL)
-    url = config.get(CONF_URL)
-
-    config_overrides = {}
-    if baud := config.get(CONF_BAUD_RATE):
-        config_overrides[CONFIG.baudrate] = baud
-
-    try:
-        # connect to the device
-        client = await construct_async_client(
-            model_id, url, hass.loop, connection_config=config_overrides
-        )
-
-    except Exception as e:
-        LOG.error(f"Failed connecting to '{model_id}' at {url}", e)
-        raise PlatformNotReady
-
-    # FIXME: default to the name of the device...from pyavcontrol client
-    player_name = config.get(CONF_NAME)
-
-    # add Media Player for the main control unit
-    entities = [McIntoshMediaPlayer(namespace, player_name, client)]
-    async_add_entities(entities, True)  # update_before_add=True)
+    # add Media Player entity
+    entities = [McIntoshMediaPlayer(config_entry, data.client)]
+    async_add_entities(new_entities=entities, update_before_add=True)
 
 
 class McIntoshMediaPlayer(MediaPlayerEntity):
-    def __init__(self, namespace: str, name: str, client: DeviceClient):
-        self._name = name
+    def __init__(self, config_entry: ConfigEntry, client: DeviceClient):
+        self._config_entry = config_entry
+
+        self._name = config_entry.data[CONF_NAME]
+        self._model_id = config_entry.data[CONF_MODEL]
+        self._unique_id = f'{DOMAIN}_{self._model_id}_{self._name}'.lower().replace(
+            ' ', '_'
+        )
+
         self._client = client
+
+    async def async_added_to_hass(self) -> None:
+        """Turn on the dispatchers."""
+        await self._initialize()
+
+    async def _initialize(self) -> None:
+        """Initialize connection dependent variables."""
+        # self._software_status = await self._client.get_softwareupdate_status()
+        LOG.debug('Connected to %s / %s', self._model_id, self._unique_id)
+
+        await self._update_current_state()
+        # await self._update_sources()
+
+    async def _update_current_state(self) -> None:
+        """Get current state of the device"""
+        # FIXME: load all the various data from the client and populate state/attributes
+
+        self._sources = []
+        # HASS won't necessarily be running the first time this method is run
+        if self.hass.is_running:
+            self.async_write_ha_state()
+
+    async def _update_sources(self) -> None:
+        """Get sources for the specific product."""
+
+        self._sources = []
 
         sources = {}  # FIXME
         self._source_id_to_name = sources  # [source_id]   -> source name
@@ -96,42 +102,13 @@ class McIntoshMediaPlayer(MediaPlayerEntity):
         #       Optionally, we could just sort based on the zone number, and let the user physically wire in the
         #       order they want (doesn't work for pre-amp out channel 7/8 on some McIntosh)
 
-        self._unique_id = f'{DOMAIN}_{namespace}_{name}'.lower().replace(' ', '_')
+        # HASS won't necessarily be running the first time this method is run
+        if self.hass.is_running:
+            self.async_write_ha_state()
 
     async def async_update(self):
         """Retrieve the latest state."""
-        try:
-            LOG.debug(f'Updating {self.zone_info}')
-            status = await self._amp.zone_status(self._zone_id)
-            if not status:
-                return
-        except Exception as e:
-            # log up to two times within a specific period to avoid saturating the logs
-            @limits(calls=2, period=10 * MINUTES)
-            def log_failed_zone_update(e):
-                LOG.warning(f'Failed updating {self.zone_info}: {e}')
-
-            log_failed_zone_update(e)
-            return
-
-        LOG.debug(f'{self.zone_info} status update: {status}')
-        self._status = status
-
-        source_id = status.get('source')
-        if source_id:
-            source_name = self._source_id_to_name.get(source_id)
-            if source_name:
-                self._source = source_name
-            else:
-                # sometimes the client may have not configured a source, but if the amplifier is set
-                # to a source other than one defined, go ahead and dynamically create that source. This
-                # could happen if the user changes the source through a different app or command.
-                source_name = f'Source {source_id}'
-                LOG.warning(
-                    f"Undefined source id {source_id} for {self.zone_info}, adding '{source_name}'!"
-                )
-                self._source_id_to_name[source_id] = source_name
-                self._source_name_to_id[source_name] = source_id
+        LOG.debug(f'Updating %s', self.unique_id)
 
     @property
     def unique_id(self):
@@ -165,33 +142,40 @@ class McIntoshMediaPlayer(MediaPlayerEntity):
             )
             return
 
-        self._client.source.set(source)
+        await self._client.source.set(source)
 
     async def async_turn_on(self):
-        self._client.power.on()
+        await self._client.power.on()
 
         # schedule a poll of the status of the zone ASAP to pickup volume levels/etc
         self.async_schedule_update_ha_state(force_refresh=True)
 
     async def async_turn_off(self):
-        self._client.power.off()
+        await self._client.power.off()
 
     async def async_mute_volume(self, mute):
         """Mute (true) or unmute (false) media player."""
-        self._client.mute.on()
+        await self._client.mute.on()
 
     async def async_set_volume_level(self, volume):
         """Set volume level, range 0—1.0"""
         # FIXME: translate to McIntosh...how to get max volume?
-        amp_volume = int(volume * MAX_VOLUME)
-        LOG.debug(f'Setting volume to {amp_volume} (HA volume {volume})')
-        self._client.volume.set(volume={amp_volume})
+        scaled_volume = int(volume * MAX_VOLUME)
+        LOG.debug(f'Setting volume to {scaled_volume} (HA volume {volume})')
+        await self._client.volume.set(volume=scaled_volume)
 
     async def async_volume_up(self):
-        self._client.volume.up()
+        await self._client.volume.up()
 
     async def async_volume_down(self):
-        self._client.volume.down()
+        await self._client.volume.down()
+
+    @property
+    def volume_level(self) -> float | None:
+        """Volume level of the media player (0..1)."""
+        # if self._volume.level and self._volume.level.level:
+        #    return float(self._volume.level.level / 100)
+        return None
 
     @property
     def icon(self):
