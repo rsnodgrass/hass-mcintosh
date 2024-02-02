@@ -15,11 +15,12 @@ from homeassistant.components.media_player.const import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME, STATE_OFF, STATE_ON, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from pyavcontrol import DeviceClient
 
 from . import McIntoshData
-from .const import CONF_MODEL, DOMAIN
+from .const import CONF_MODEL, CONF_URL, DOMAIN
 
 LOG = logging.getLogger(__name__)
 
@@ -51,16 +52,39 @@ async def async_setup_entry(
 
 
 class McIntoshMediaPlayer(MediaPlayerEntity):
-    def __init__(self, config_entry: ConfigEntry, client: DeviceClient):
-        self._config_entry = config_entry
+    _attr_has_entity_name = True
 
-        self._name = config_entry.data[CONF_NAME]
+    def __init__(self, config_entry: ConfigEntry, client: DeviceClient) -> None:
+        self._config_entry = config_entry
+        self._client = client
+
+        self._attr_name = config_entry.data[CONF_NAME]
         self._model_id = config_entry.data[CONF_MODEL]
-        self._unique_id = f'{DOMAIN}_{self._model_id}_{self._name}'.lower().replace(
-            ' ', '_'
+
+        self._attr_unique_id = (
+            f'{DOMAIN}_{self._model_id}_{self._attr_name}'.lower().replace(' ', '_')
         )
 
-        self._client = client
+        # FIXME: need API from pyavcontrol to get manufacter/model info (beside model_id)
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, config_entry[CONF_URL])},
+            manufacturer='McIntosh',
+            model=self._model_id,
+            name=self._attr_name,
+            sw_version='Unknown',
+        )
+
+        # _attr_supported_features = XXX # FIXME: dynamically set features based on client features
+
+        self._update_attr()
+
+    @callback
+    def _update_attr(self, client):
+        # self._attr_extra_state_attributes = {
+        #    "trigger1": client.trigger_status(trigger=1),
+        #    "trigger2": client.trigger_status(trigger=2),
+        # }
+        pass
 
     async def async_added_to_hass(self) -> None:
         """Turn on the dispatchers."""
@@ -109,16 +133,6 @@ class McIntoshMediaPlayer(MediaPlayerEntity):
     async def async_update(self):
         """Retrieve the latest state."""
         LOG.debug(f'Updating %s', self.unique_id)
-
-    @property
-    def unique_id(self):
-        """Return unique ID for this device."""
-        return self._unique_id
-
-    @property
-    def name(self):
-        """Return the amp's name."""
-        return self._name
 
     @property
     def state(self):
@@ -178,7 +192,7 @@ class McIntoshMediaPlayer(MediaPlayerEntity):
         return None
 
     @property
-    def icon(self):
+    def icon(self) -> str | None:
         if self.state == STATE_OFF or self.is_volume_muted:
             return 'mdi:speaker-off'
         return 'mdi:speaker'
