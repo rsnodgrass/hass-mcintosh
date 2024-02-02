@@ -2,9 +2,9 @@
     "domain": "mcintosh",
     "name": "McIntosh Audio",
     "codeowners": ["@rsnodgrass"],
-    "config_flow": true
+    "config_flow": true,
     "documentation": "https://github.com/rsnodgrass/hass-mcintosh",
     "iot_class": "local_polling",
     "requirements": ["pyavcontrol>=0.1.1", "ratelimit"],
-    "version": "0.1.0",
+    "version": "0.1.0"
 }
