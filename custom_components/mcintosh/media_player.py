@@ -2,9 +2,8 @@
 
 import logging
 
-import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.components.media_player import PLATFORM_SCHEMA, MediaPlayerEntity
+from homeassistant.components.media_player import MediaPlayerEntity
 from homeassistant.components.media_player.const import (
     SUPPORT_SELECT_SOURCE,
     SUPPORT_TURN_OFF,
@@ -13,17 +12,9 @@ from homeassistant.components.media_player.const import (
     SUPPORT_VOLUME_SET,
     SUPPORT_VOLUME_STEP,
 )
-from homeassistant.const import (
-    ATTR_ENTITY_ID,
-    CONF_NAME,
-    CONF_URL,
-    STATE_OFF,
-    STATE_ON,
-    STATE_UNKNOWN,
-)
+from homeassistant.const import CONF_NAME, CONF_URL, STATE_OFF, STATE_ON, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import PlatformNotReady
-from homeassistant.helpers import config_validation as cv
 from pyavcontrol import DeviceClient
 from pyavcontrol.config import CONFIG
 from pyavcontrol.helper import construct_async_client
@@ -46,18 +37,7 @@ SUPPORTED_ZONE_FEATURES = (
 
 CONF_SOURCES = 'sources'
 
-# Valid source ids:
-#    monoprice6: 1-6 (Monoprice and Dayton Audio)
-#    mcintosh8:   1-8
-SOURCE_IDS = vol.All(vol.Coerce(int), vol.Range(min=1, max=8))
-SOURCE_SCHEMA = vol.Schema(
-    {vol.Required(CONF_NAME, default='Unknown Source'): cv.string}
-)
-
 SUPPORTED_MODELS = ['mcintosh_mx160']
-
-# schema for media player service calls
-SERVICE_CALL_SCHEMA = vol.Schema({ATTR_ENTITY_ID: cv.comp_entity_ids})
 
 MINUTES = 60
 MAX_VOLUME = 100  # FIXME
