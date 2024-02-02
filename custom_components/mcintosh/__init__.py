@@ -2,9 +2,9 @@
 The McIntosh A/V integration.
 """
 import logging
-import dataclasses
+from dataclasses import dataclass
+from typing import Any, Mapping
 
-from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -20,10 +20,10 @@ LOG = logging.getLogger(__name__)
 PLATFORMS = [Platform.MEDIA_PLAYER]
 
 
-@dataclasses
+@dataclass
 class McIntoshData:
     client: DeviceClient
-    config: dict
+    config: Mapping[str, Any]
 
 
 async def connect_client_from_config(hass: HomeAssistant, entry: ConfigEntry):
