@@ -137,7 +137,7 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
         # no user input yet, so display the form
         return self.async_show_form(
             step_id='user',
-            data_schema=ConfigFlow.config_schema(mcintosh_models),
+            data_schema=McIntoshConfigFlow.config_schema(mcintosh_models),
             errors=errors,
         )
 
