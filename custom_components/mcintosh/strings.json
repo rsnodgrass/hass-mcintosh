@@ -26,7 +26,7 @@
         "data": {
           "name": "Name of the device",
           "model_id": "McIntosh model",
-          "url": "pySerial compatible URL (e.g. socket://<host>:<port> or /dev/ttyUSB0)",
+          "url": "pySerial compatible URL (e.g. socket://host:port or /dev/ttyUSB0)",
           "baud": "Baud rate (if connecting locally via RS232 /dev/tty)"
         }
       }
