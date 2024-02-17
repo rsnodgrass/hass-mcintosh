@@ -14,8 +14,11 @@ from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 from pyavcontrol import DeviceModelLibrary
-from pyavcontrol.const import BAUD_RATES
+
+# from pyavcontrol.const import BAUD_RATES
 from pyavcontrol.helper import construct_async_client
+
+BAUD_RATES = [9600]  # FIXME: remove
 
 from . import get_connection_overrides
 from .const import CONF_BAUD_RATE, CONF_MODEL, DEFAULT_URL, DOMAIN
@@ -25,14 +28,14 @@ LOG = logging.getLogger(__name__)
 ERROR_CANNOT_CONNECT = {'base': 'cannot_connect'}
 ERROR_UNSUPPORTED = {'base': 'unsupported'}
 
+from homeassistant.const import CONF_PORT, CONF_URL
 
-class EntryData(TypedDict, total=False):
-    """TypedDict for config_entry data."""
-
-    host: str
-    jid: str
-    model: str
-    name: str
+CONFIG_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_URL): cv.string,
+        vol.Optional(CONF_PORT): cv.port,
+    }
+)
 
 
 class UnsupportedError(HomeAssistantError):
@@ -55,6 +58,10 @@ def filter_models(prefix: str):
 class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
+    def __init__(self):
+        """Initialize the McIntosh flow."""
+        pass
+
     #    @staticmethod
     #    @callback
     #    def async_get_options_flow(config_entry):
@@ -62,10 +69,10 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
     #        return OptionsFlowHandler(config_entry)
 
     @staticmethod
-    def config_schema(supported_models):
+    def config_schema(supported_models) -> vol.Schema:
         # FIXME: do we need to repopulate with existing config?
         #  e.g. default=self._config_entry.options.get(CONF_URL),
-        return vol.Schema(
+        schema = vol.Schema(
             {
                 vol.Optional(CONF_NAME, default='McIntosh Audio'): cv.string,
                 # vol.Required(CONF_MODEL): selector.SelectSelector(
@@ -78,28 +85,32 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_BAUD_RATE): vol.In(BAUD_RATES),
             }
         )
+        LOG.warning(schema)
+        return schema
 
     async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None, errors=None
     ) -> FlowResult:
         """Handle the initial step of selecting model to configure."""
-        errors: dict[str, str] | None = None
+        errors: dict[str, str] = {}
 
         # NOTE: in future may need to be more selective to only include mcintosh_*
         # that meet specific criteria...e.g. not all may be media players.
         # Alternatively since new physical models are not released often, this
         # could also be a static list of models! (PROBABLY BEST OPTION)
         mcintosh_models = filter_models('mcintosh')
-        LOG.info(f'Starting McIntosh config flow: {mcintosh_models}')
+        LOG.warning(f'Starting McIntosh config flow: {mcintosh_models}')
 
         if user_input is not None:
-            LOG.info(f'Handling user input: {user_input}')
+            LOG.warning(f'Handling user input: {user_input}')
 
             name = user_input.get(CONF_NAME).strip()
             model_id = user_input[CONF_MODEL]
             url = user_input.get(CONF_URL).strip()
 
             try:
+                LOG.warning(f'User INPUT: {user_input}')
+
                 if model_id not in mcintosh_models:
                     raise UnsupportedError
 
@@ -115,7 +126,8 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
 
                 # Check connection and try to initialize it.
                 try:
-                    await client.ping.ping()
+                    # await client.ping.ping()
+                    pass
                 except Exception as e:
                     raise ConfigEntryNotReady(
                         f'Unable to connect to {name} / {model_id} / {url}'
@@ -131,13 +143,15 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors = ERROR_UNSUPPORTED
                 LOG.warning(f'Failed config_flow: {errors}', e)
             else:
-                return self.async_create_entry(title='', data=user_input)
+                return self.async_create_entry(title='McIntosh', data=user_input)
 
-        LOG.info(f'Displaying standard form')
+        LOG.warning(f'Displaying standard form')
+
         # no user input yet, so display the form
         return self.async_show_form(
             step_id='user',
-            data_schema=McIntoshConfigFlow.config_schema(mcintosh_models),
+            data_schema=CONFIG_SCHEMA,
+            #            data_schema=McIntoshConfigFlow.config_schema(mcintosh_models),
             errors=errors,
         )
 
