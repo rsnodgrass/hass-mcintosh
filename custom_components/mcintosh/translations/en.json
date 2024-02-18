@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "McIntosh",
+        "description": "Enter communication setting for this device",
+        "data": {
+          "name": "Name for the device",
+          "url": "Pyserial compatible URL either local path or remote host and port",
+          "model": "Model of the device connected via the URL",
+          "baud": "Baud rate for the connection if locally attached"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    }
+  }
+}
