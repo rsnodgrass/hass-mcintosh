@@ -52,7 +52,7 @@ async def config_update_listener(hass: HomeAssistant, config_entry: ConfigEntry)
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     """Set up from a config entry."""
-    assert config_entry.unique_id
+    # assert config_entry.unique_id  # FIXME
     hass.data.setdefault(DOMAIN, {})
 
     # connect to the device

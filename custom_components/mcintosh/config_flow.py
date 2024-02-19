@@ -73,8 +73,8 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Required(
                     CONF_URL, default=DEFAULT_URL
-                ): cv.string  # this should NOT be cv.url
-                # vol.Optional(CONF_BAUD_RATE): vol.In(BAUD_RATES),
+                ): cv.string,  # this should NOT be cv.url
+                vol.Optional(CONF_BAUD_RATE): vol.In(BAUD_RATES),
             }
         )
         LOG.warning(f'Prepared {type(schema)} schema {schema}')

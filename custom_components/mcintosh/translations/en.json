@@ -3,11 +3,11 @@
     "step": {
       "user": {
         "title": "McIntosh",
-        "description": "Select McIntosh device and communication settings",
+        "description": "Setup McIntosh equipment and communication settings",
         "data": {
-          "model_id": "Model of the McIntosh device",
-          "url": "Pyserial style URL (local tty path or socket for remote host + port)",
-          "baud": "Override the default baud rate for the connection if locally attached"
+          "model_id": "Model of McIntosh equipment",
+          "url": "URL in pyserial-style for local tty path or socket for remote host:port",
+          "baud": "[Optional] Override equipment's default baud rate (only for locally attached tty path)"
         }
       }
     },
