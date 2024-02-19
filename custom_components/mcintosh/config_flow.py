@@ -18,7 +18,18 @@ from pyavcontrol import DeviceModelLibrary
 # from pyavcontrol.const import BAUD_RATES
 from pyavcontrol.helper import construct_async_client
 
-BAUD_RATES = [9600]  # FIXME: remove
+BAUD_RATES = [
+    2400,
+    4800,
+    9600,
+    14400,
+    19200,
+    38400,
+    57600,
+    115200,
+    128000,
+    256000,
+]  # FIXME: remove
 
 from . import get_connection_overrides
 from .const import CONF_BAUD_RATE, CONF_MODEL, DEFAULT_URL, DOMAIN
@@ -28,7 +39,7 @@ LOG = logging.getLogger(__name__)
 ERROR_CANNOT_CONNECT = {'base': 'cannot_connect'}
 ERROR_UNSUPPORTED = {'base': 'unsupported'}
 
-from homeassistant.const import CONF_PORT, CONF_URL
+from homeassistant.const import CONF_URL
 
 
 class UnsupportedDeviceError(HomeAssistantError):
@@ -44,7 +55,6 @@ def filter_models(prefix: str):
     # Alternatively since new physical models are not released often, this
     # could also be a static list of models! (PROBABLY BEST OPTION)
     filtered_models = [x for x in supported_models if x.startswith(prefix)]
-    # filtered_models = ['mcintosh_mx160']
     return filtered_models
 
 
@@ -52,7 +62,7 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     def __init__(self):
-        """Initialize the McIntosh flow."""
+        """Initialize the McIntosh configuration flow."""
         pass
 
     #    @staticmethod
@@ -73,11 +83,11 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Required(
                     CONF_URL, default=DEFAULT_URL
-                ): cv.string,  # this should NOT be cv.url
+                ): cv.string,  # this should NOT be cv.url (since also can be a path)
                 vol.Optional(CONF_BAUD_RATE): vol.In(BAUD_RATES),
             }
         )
-        LOG.warning(f'Prepared {type(schema)} schema {schema}')
+        # LOG.debug(f'Prepared {type(schema)} schema {schema}')
         return schema
 
     async def async_step_user(
@@ -111,9 +121,7 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
                     model_id, url, loop, connection_config=config_overrides
                 )
 
-                # make sure connection is alive and working to the device
-
-                # Check connection and try to initialize it.
+                # test connection is alive and working to the device
                 try:
                     # await client.ping.ping()
                     pass
@@ -122,8 +130,18 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
                         f'Connection failed to {model_id} @ {url}'
                     ) from e
 
-                # await self.async_set_unique_id(client.serial)
-                # self._abort_if_unique_id_configured()
+                # unique_id is client serial, if available, otherwise the url + model
+                unique_id = f'{model_id}_{url}'
+                if hasattr(client, 'serial'):
+                    try:
+                        unique_id = await client.serial()
+                    except Exception as e:
+                        LOG.info(
+                            f'Failed calling serial(), defaulting unique_id to {unique_id}'
+                        )
+
+                await self.async_set_unique_id(unique_id)
+                self._abort_if_unique_id_configured()
 
             except ConnectionError as e:
                 errors = ERROR_CANNOT_CONNECT
@@ -134,11 +152,8 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 return self.async_create_entry(title='McIntosh', data=user_input)
 
-        LOG.warning(f'Displaying initial form')
-
-        # no user input yet, so display the form
+        # no user input yet, display the initial configuration form
         schema = McIntoshConfigFlow.config_schema(mcintosh_models)
-        LOG.warning(f'SCHEMA: {type(schema)} {schema}')
         return self.async_show_form(step_id='user', data_schema=schema, errors=errors)
 
 
@@ -153,18 +168,15 @@ class McIntoshOptionsFlow(OptionsFlow):
     ) -> dict[str, Any]:
         """Manage the options for the custom component."""
         errors: dict[str, str] = {}
-        supported_models = filter_models('mcintosh')
 
         if user_input is not None:
             # Validation and additional processing logic omitted for brevity.
             # ...
             if not errors:
-                # Value of data will be set on the options property of our config_entry
-                # instance.
+                # Value of data will be set on the options property of our config_entry instance.
                 return self.async_create_entry(title='', data=user_input)
 
-        LOG.warning('async_step_init()')
-
+        supported_models = filter_models('mcintosh')
         return self.async_show_form(
             step_id='init',
             data_schema=McIntoshConfigFlow.config_schema(supported_models),
