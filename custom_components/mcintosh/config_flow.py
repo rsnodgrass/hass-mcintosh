@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 import asyncio
-from typing import Any, TypedDict
+from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
@@ -30,15 +30,8 @@ ERROR_UNSUPPORTED = {'base': 'unsupported'}
 
 from homeassistant.const import CONF_PORT, CONF_URL
 
-CONFIG_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_URL): cv.string,
-        vol.Optional(CONF_PORT): cv.port,
-    }
-)
 
-
-class UnsupportedError(HomeAssistantError):
+class UnsupportedDeviceError(HomeAssistantError):
     """Error for unsupported device types."""
 
 
@@ -70,22 +63,21 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     def config_schema(supported_models) -> vol.Schema:
-        # FIXME: do we need to repopulate with existing config?
-        #  e.g. default=self._config_entry.options.get(CONF_URL),
         schema = vol.Schema(
             {
-                vol.Optional(CONF_NAME, default='McIntosh Audio'): cv.string,
-                # vol.Required(CONF_MODEL): selector.SelectSelector(
-                #    selector.SelectSelectorConfig(
-                #        options=supported_models,
-                #        mode=selector.SelectSelectorMode.DROPDOWN,
-                #    )
-                # ),
-                vol.Required(CONF_URL, default=DEFAULT_URL): cv.url,
-                vol.Optional(CONF_BAUD_RATE): vol.In(BAUD_RATES),
+                vol.Required(CONF_MODEL): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=supported_models,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Required(
+                    CONF_URL, default=DEFAULT_URL
+                ): cv.string  # this should NOT be cv.url
+                # vol.Optional(CONF_BAUD_RATE): vol.In(BAUD_RATES),
             }
         )
-        LOG.warning(schema)
+        LOG.warning(f'Prepared {type(schema)} schema {schema}')
         return schema
 
     async def async_step_user(
@@ -104,15 +96,12 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             LOG.warning(f'Handling user input: {user_input}')
 
-            name = user_input.get(CONF_NAME).strip()
             model_id = user_input[CONF_MODEL]
             url = user_input.get(CONF_URL).strip()
 
             try:
-                LOG.warning(f'User INPUT: {user_input}')
-
                 if model_id not in mcintosh_models:
-                    raise UnsupportedError
+                    raise UnsupportedDeviceError
 
                 loop = asyncio.get_event_loop()
                 config_overrides = get_connection_overrides(user_input)
@@ -130,7 +119,7 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
                     pass
                 except Exception as e:
                     raise ConfigEntryNotReady(
-                        f'Unable to connect to {name} / {model_id} / {url}'
+                        f'Connection failed to {model_id} @ {url}'
                     ) from e
 
                 # await self.async_set_unique_id(client.serial)
@@ -139,21 +128,18 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
             except ConnectionError as e:
                 errors = ERROR_CANNOT_CONNECT
                 LOG.warning(f'Failed config_flow: {errors}', e)
-            except UnsupportedError as e:
+            except UnsupportedDeviceError as e:
                 errors = ERROR_UNSUPPORTED
                 LOG.warning(f'Failed config_flow: {errors}', e)
             else:
                 return self.async_create_entry(title='McIntosh', data=user_input)
 
-        LOG.warning(f'Displaying standard form')
+        LOG.warning(f'Displaying initial form')
 
         # no user input yet, so display the form
-        return self.async_show_form(
-            step_id='user',
-            data_schema=CONFIG_SCHEMA,
-            #            data_schema=McIntoshConfigFlow.config_schema(mcintosh_models),
-            errors=errors,
-        )
+        schema = McIntoshConfigFlow.config_schema(mcintosh_models)
+        LOG.warning(f'SCHEMA: {type(schema)} {schema}')
+        return self.async_show_form(step_id='user', data_schema=schema, errors=errors)
 
 
 class McIntoshOptionsFlow(OptionsFlow):
@@ -177,7 +163,7 @@ class McIntoshOptionsFlow(OptionsFlow):
                 # instance.
                 return self.async_create_entry(title='', data=user_input)
 
-        LOG.warning(f'async_step_init()')
+        LOG.warning('async_step_init()')
 
         return self.async_show_form(
             step_id='init',

@@ -48,3 +48,4 @@ media_player:
 
 * [Community support discussion thread](https://community.home-assistant.io/t/mcintosh-dayton-audio-sonance-multi-zone-amps/450908)
 * [pyavcontrol](https://github.com/rsnodgrass/pyavcontrol)
+* [RS232 to USB cable](https://www.amazon.com/RS232-to-USB/dp/B0759HSLP1?tag=carreramfi-20)

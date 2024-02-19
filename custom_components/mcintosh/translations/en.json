@@ -3,12 +3,11 @@
     "step": {
       "user": {
         "title": "McIntosh",
-        "description": "Enter communication setting for this device",
+        "description": "Select McIntosh device and communication settings",
         "data": {
-          "name": "Name for the device",
-          "url": "Pyserial compatible URL either local path or remote host and port",
-          "model": "Model of the device connected via the URL",
-          "baud": "Baud rate for the connection if locally attached"
+          "model_id": "Model of the McIntosh device",
+          "url": "Pyserial style URL (local tty path or socket for remote host + port)",
+          "baud": "Override the default baud rate for the connection if locally attached"
         }
       }
     },
