@@ -1,10 +1,13 @@
 {
   "config": {
     "step": {
-      "device": {
+      "user": {
         "title": "McIntosh",
+        "description": "Richten Sie McIntosh-Geräte und Kommunikationseinstellungen ein",
         "data": {
-          "url": "Pyserial-kompatible URL"
+          "model_id": "Modell einer McIntosh-Ausrüstung",
+          "url": "URL im pyserial stil für den lokalen TTY-pfad oder socket für den remote-host:port",
+          "baud": "[Optional] Standard-Baudrate des Geräts überschreiben (nur für lokal angeschlossenen TTY-Pfad)"
         }
       }
     },

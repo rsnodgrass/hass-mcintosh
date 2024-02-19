@@ -7,29 +7,15 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
-from homeassistant.const import CONF_NAME, CONF_URL
+from homeassistant.const import CONF_URL
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 from pyavcontrol import DeviceModelLibrary
-
-# from pyavcontrol.const import BAUD_RATES
+from pyavcontrol.const import BAUD_RATES
 from pyavcontrol.helper import construct_async_client
-
-BAUD_RATES = [
-    2400,
-    4800,
-    9600,
-    14400,
-    19200,
-    38400,
-    57600,
-    115200,
-    128000,
-    256000,
-]  # FIXME: remove
 
 from . import get_connection_overrides
 from .const import CONF_BAUD_RATE, CONF_MODEL, DEFAULT_URL, DOMAIN
@@ -38,8 +24,6 @@ LOG = logging.getLogger(__name__)
 
 ERROR_CANNOT_CONNECT = {'base': 'cannot_connect'}
 ERROR_UNSUPPORTED = {'base': 'unsupported'}
-
-from homeassistant.const import CONF_URL
 
 
 class UnsupportedDeviceError(HomeAssistantError):
@@ -72,7 +56,7 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
     #        return OptionsFlowHandler(config_entry)
 
     @staticmethod
-    def config_schema(supported_models) -> vol.Schema:
+    def step_user_schema(supported_models) -> vol.Schema:
         schema = vol.Schema(
             {
                 vol.Required(CONF_MODEL): selector.SelectSelector(
@@ -101,10 +85,10 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
         # Alternatively since new physical models are not released often, this
         # could also be a static list of models! (PROBABLY BEST OPTION)
         mcintosh_models = filter_models('mcintosh')
-        LOG.warning(f'Starting McIntosh config flow: {mcintosh_models}')
+        LOG.debug(f'Starting McIntosh config flow: {mcintosh_models}')
 
         if user_input is not None:
-            LOG.warning(f'Handling user input: {user_input}')
+            LOG.info(f'Config flow user input: {user_input}')
 
             model_id = user_input[CONF_MODEL]
             url = user_input.get(CONF_URL).strip()
@@ -119,25 +103,16 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
                 # connect to the device to confirm everything works
                 client = await construct_async_client(
                     model_id, url, loop, connection_config=config_overrides
-                )
-
-                # test connection is alive and working to the device
-                try:
-                    # await client.ping.ping()
-                    pass
-                except Exception as e:
-                    raise ConfigEntryNotReady(
-                        f'Connection failed to {model_id} @ {url}'
-                    ) from e
+                ).is_connected()
 
                 # unique_id is client serial, if available, otherwise the url + model
                 unique_id = f'{model_id}_{url}'
                 if hasattr(client, 'serial'):
                     try:
                         unique_id = await client.serial()
-                    except Exception as e:
+                    except Exception:
                         LOG.info(
-                            f'Failed calling serial(), defaulting unique_id to {unique_id}'
+                            f'Failed getting serial number, defaulting unique_id to {unique_id}'
                         )
 
                 await self.async_set_unique_id(unique_id)
@@ -153,8 +128,11 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(title='McIntosh', data=user_input)
 
         # no user input yet, display the initial configuration form
-        schema = McIntoshConfigFlow.config_schema(mcintosh_models)
+        schema = McIntoshConfigFlow.step_user_schema(mcintosh_models)
         return self.async_show_form(step_id='user', data_schema=schema, errors=errors)
+
+
+# FIXME: add "sources" config panel (as options flow and initial setup)
 
 
 class McIntoshOptionsFlow(OptionsFlow):
@@ -163,7 +141,7 @@ class McIntoshOptionsFlow(OptionsFlow):
     def __init__(self, config_entry: ConfigEntry) -> None:
         self._config_entry = config_entry
 
-    async def async_step_init(
+    async def async_step_options(
         self, user_input: dict[str, Any] = None
     ) -> dict[str, Any]:
         """Manage the options for the custom component."""
@@ -179,6 +157,6 @@ class McIntoshOptionsFlow(OptionsFlow):
         supported_models = filter_models('mcintosh')
         return self.async_show_form(
             step_id='init',
-            data_schema=McIntoshConfigFlow.config_schema(supported_models),
+            data_schema=McIntoshConfigFlow.step_user_schema(supported_models),
             errors=errors,
         )

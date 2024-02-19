@@ -8,7 +8,7 @@ DOMAIN: Final[str] = 'mcintosh'
 DEFAULT_URL: Final = 'socket://mcintosh.local:4166'
 
 CONF_URL: Final = 'url'
-CONF_BAUD_RATE: Final = 'baudrate'
+CONF_BAUD_RATE: Final = 'baud'
 CONF_MODEL: Final = 'model_id'
 CONF_SOURCES: Final = 'sources'
 

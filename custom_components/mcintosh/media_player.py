@@ -45,8 +45,6 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     data: McIntoshData = hass.data[DOMAIN][config_entry.entry_id]
-
-    # add Media Player entity
     entities = [McIntoshMediaPlayer(config_entry, data.client)]
     async_add_entities(new_entities=entities, update_before_add=True)
 
@@ -58,7 +56,7 @@ class McIntoshMediaPlayer(MediaPlayerEntity):
         self._config_entry = config_entry
         self._client = client
 
-        self._attr_name = config_entry.data[CONF_NAME]
+        # self._attr_name = config_entry.data[CONF_NAME]
         self._model_id = config_entry.data[CONF_MODEL]
 
         self._attr_unique_id = (
@@ -70,7 +68,7 @@ class McIntoshMediaPlayer(MediaPlayerEntity):
             identifiers={(DOMAIN, config_entry[CONF_URL])},
             manufacturer='McIntosh',
             model=self._model_id,
-            name=self._attr_name,
+            name=self._model_id,  # FIXME
             sw_version='Unknown',
         )
 
