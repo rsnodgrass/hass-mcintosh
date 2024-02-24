@@ -28,9 +28,9 @@ ake sure that [Home Assistant Community Store (HACS)](https://github.com/custom-
 
 ### Step 2: Configuration
 
-Configuration is similar to the monoprice component here: https://www.home-assistant.io/integrations/monoprice/
+This integration is completely configured via config flow.
 
-#### Example configuration.yaml:
+#### Example OLD-STYLE configuration.yaml:
 
 ```yaml
 media_player:
