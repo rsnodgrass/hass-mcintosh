@@ -8,16 +8,18 @@ from homeassistant.components.media_player import (
     MediaPlayerDeviceClass,
     MediaPlayerEntity,
 )
-from homeassistant.components.media_player.const import MediaPlayerEntityFeature
+from homeassistant.components.media_player.const import (
+    MediaPlayerEntityFeature,
+    MediaPlayerState,
+)
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME, STATE_OFF, STATE_ON, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from pyavcontrol import DeviceClient
 
 from . import McIntoshData
-from .const import CONF_MODEL, CONF_SOURCES, CONF_URL, DOMAIN
+from .const import CONF_MODEL, CONF_SOURCES, DOMAIN
 
 LOG = logging.getLogger(__name__)
 
@@ -232,6 +234,6 @@ class McIntoshMediaPlayer(MediaPlayerEntity):
 
     @property
     def icon(self) -> str | None:
-        if self.state == STATE_OFF or self.is_volume_muted:
+        if self.state is MediaPlayerState.OFF or self.is_volume_muted:
             return 'mdi:speaker-off'
         return 'mdi:speaker'

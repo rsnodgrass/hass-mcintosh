@@ -35,14 +35,14 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     def __init__(self):
-        """Initialize the McIntosh configuration flow."""
+        """Initialize the McIntosh config flow."""
         pass
 
-    #    @staticmethod
-    #    @callback
-    #    def async_get_options_flow(config_entry):
-    #        """Get the options flow for this handler."""
-    #        return OptionsFlowHandler(config_entry)
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Get the options flow for this handler."""
+        return McIntoshOptionsFlow(config_entry)
 
     @staticmethod
     def step_user_schema(supported_models) -> vol.Schema:
@@ -68,11 +68,6 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle the initial step of selecting model to configure."""
         errors: dict[str, str] = {}
-
-        # NOTE: in future may need to be more selective to only include mcintosh_*
-        # that meet specific criteria...e.g. not all may be media players.
-        # Alternatively since new physical models are not released often, this
-        # could also be a static list of models! (PROBABLY BEST OPTION)
 
         if user_input is not None:
             LOG.info(f'Config flow user input: {user_input}')
@@ -113,6 +108,12 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
 
         # no user input yet, display the initial configuration form
         supported_models = DeviceModelLibrary.create().supported_models()
+
+        # NOTE: in future may need to be more selective to only include devices
+        # that meet specific criteria...e.g. not all may be media players.
+        #
+        # Alternatively since new physical models are not released often, this
+        # could also be a static list of models.
         mcintosh_models = filter_models_by_regex(supported_models, 'mcintosh')
         LOG.debug(f'Starting McIntosh config flow: %s', mcintosh_models)
 
@@ -129,6 +130,19 @@ class McIntoshOptionsFlow(OptionsFlow):
     def __init__(self, config_entry: ConfigEntry) -> None:
         self._config_entry = config_entry
 
+    @staticmethod
+    def step_options_schema(model_def: dict) -> vol.Schema:
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_URL, default=DEFAULT_URL
+                ): cv.string,  # this should NOT be cv.url (since also can be a path)
+                vol.Optional(CONF_BAUD_RATE): vol.In(BAUD_RATES),
+            }
+        )
+        # LOG.debug(f'Prepared {type(schema)} schema {schema}')
+        return schema
+
     async def async_step_options(
         self, user_input: dict[str, Any] = None
     ) -> dict[str, Any]:
@@ -142,9 +156,6 @@ class McIntoshOptionsFlow(OptionsFlow):
                 # Value of data will be set on the options property of our config_entry instance.
                 return self.async_create_entry(title='', data=user_input)
 
-        supported_models = filter_models('mcintosh')
-        return self.async_show_form(
-            step_id='init',
-            data_schema=McIntoshConfigFlow.step_user_schema(supported_models),
-            errors=errors,
-        )
+        model = DeviceModelLibrary.create().load_model(CONF_MODEL)
+        schema = McIntoshConfigFlow.step_user_schema(model)
+        return self.async_show_form(step_id='init', data_schema=schema, errors=errors)
