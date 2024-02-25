@@ -3,15 +3,12 @@
 import logging
 from typing import Final
 
-from homeassistant.components.media_player import MediaPlayerEntity
-from homeassistant.components.media_player.const import (
-    SUPPORT_SELECT_SOURCE,
-    SUPPORT_TURN_OFF,
-    SUPPORT_TURN_ON,
-    SUPPORT_VOLUME_MUTE,
-    SUPPORT_VOLUME_SET,
-    SUPPORT_VOLUME_STEP,
+from homeassistant import core
+from homeassistant.components.media_player import (
+    MediaPlayerDeviceClass,
+    MediaPlayerEntity,
 )
+from homeassistant.components.media_player.const import MediaPlayerEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME, STATE_OFF, STATE_ON, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
@@ -20,20 +17,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from pyavcontrol import DeviceClient
 
 from . import McIntoshData
-from .const import CONF_MODEL, CONF_URL, DOMAIN
+from .const import CONF_MODEL, CONF_SOURCES, CONF_URL, DOMAIN
 
 LOG = logging.getLogger(__name__)
-
-SUPPORTED_AMP_FEATURES = SUPPORT_TURN_ON | SUPPORT_TURN_OFF | SUPPORT_SELECT_SOURCE
-
-SUPPORTED_ZONE_FEATURES = (
-    SUPPORT_VOLUME_MUTE
-    | SUPPORT_VOLUME_SET
-    | SUPPORT_VOLUME_STEP
-    | SUPPORT_TURN_ON
-    | SUPPORT_TURN_OFF
-    | SUPPORT_SELECT_SOURCE
-)
 
 MINUTES: Final = 60
 MAX_VOLUME = 100  # FIXME
@@ -45,11 +31,42 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     data: McIntoshData = hass.data[DOMAIN][config_entry.entry_id]
+
+    sources = _get_sources(config_entry)
+
     entities = [McIntoshMediaPlayer(config_entry, data.client)]
     async_add_entities(new_entities=entities, update_before_add=True)
 
 
+@core.callback
+def _get_sources_from_dict(data):
+    sources_config = data[CONF_SOURCES]
+    source_id_name = {int(index): name for index, name in sources_config.items()}
+    source_name_id = {v: k for k, v in source_id_name.items()}
+    source_names = sorted(source_name_id.keys(), key=lambda v: source_name_id[v])
+    return [source_id_name, source_name_id, source_names]
+
+
+@core.callback
+def _get_sources(config_entry):
+    if CONF_SOURCES in config_entry.options:
+        data = config_entry.options
+    else:
+        data = config_entry.data
+    return _get_sources_from_dict(data)
+
+
 class McIntoshMediaPlayer(MediaPlayerEntity):
+
+    _attr_device_class = MediaPlayerDeviceClass.RECEIVER
+    _attr_supported_features = (
+        MediaPlayerEntityFeature.VOLUME_MUTE
+        | MediaPlayerEntityFeature.VOLUME_SET
+        | MediaPlayerEntityFeature.VOLUME_STEP
+        | MediaPlayerEntityFeature.TURN_ON
+        | MediaPlayerEntityFeature.TURN_OFF
+        | MediaPlayerEntityFeature.SELECT_SOURCE
+    )
     _attr_has_entity_name = True
 
     def __init__(self, config_entry: ConfigEntry, client: DeviceClient) -> None:
@@ -60,17 +77,38 @@ class McIntoshMediaPlayer(MediaPlayerEntity):
         self._model_id = config_entry.data[CONF_MODEL]
 
         self._attr_unique_id = (
-            f'{DOMAIN}_{self._model_id}_{self._attr_name}'.lower().replace(' ', '_')
+            f'{DOMAIN}_{self._model_id}_{self._client}'.lower().replace(' ', '_')
         )
 
-        # FIXME: need API from pyavcontrol to get manufacter/model info (beside model_id)
+        # name for this device should be manufacturer + the top most supported model as default
+        device_model = client.model()
+        manufacturer = (device_model.info.get('manufacturer', 'McIntosh'),)
+        if supported_model_names := device_model.get('models', []):
+            model_name = supported_model_names[0]
+
+            # if multiple model names are supported by this client, include them in the attributes
+            # for this media player as a UI convenience for users
+            if len(supported_model_names) > 1:
+                self._attr_supported_models[
+                    'supported_models'
+                ] = supported_model_names  # FIXME
+        else:
+            model_name = 'Media Player'
+
+        # NOTE: This currently only supports the MAIN zone for media devices, but in future
+        # may want to add support for additional zones:
+        zones = ['Main']
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, config_entry[CONF_URL])},
-            manufacturer='McIntosh',
-            model=self._model_id,
-            name=self._model_id,  # FIXME
+            identifiers={(DOMAIN, self._attr_unique_id)},
+            manufacturer=manufacturer,
+            model='{model_name}',
+            name=f'{manufacturer} {model_name}',  # entity name
             sw_version='Unknown',
         )
+
+        # self._attr_source_list = sources
+
+        # FIXME: if additional models supported, update the
 
         # _attr_supported_features = XXX # FIXME: dynamically set features based on client features
 
@@ -132,20 +170,23 @@ class McIntoshMediaPlayer(MediaPlayerEntity):
         """Retrieve the latest state."""
         LOG.debug(f'Updating %s', self.unique_id)
 
-    @property
-    def state(self):
-        """Return the amp's power state."""
-        return STATE_UNKNOWN
+        # poll the client for latest state for the device
+        try:
+            # FIXME: how to get current state?
+            state = await self._client.get_status(self._zone_id)
+        except Exception as e:
+            LOG.warning(f'Could not update {self.unique_id}', e)
+            return
+        finally:
+            if not state:
+                return
 
-    @property
-    def supported_features(self):
-        """Return flag of media commands that are supported."""
-        return SUPPORTED_AMP_FEATURES
-
-    @property
-    def source_list(self):
-        """List of available input sources."""
-        return self._source_names
+        # FIXME
+        self._attr_state = MediaPlayerState.ON if state.power else MediaPlayerState.OFF
+        self._attr_volume_level = state.volume / MAX_VOLUME
+        # self._attr_is_volume_muted = state.mute
+        # idx = state.source
+        # self._attr_source = self._source_id_name.get(idx)
 
     async def async_select_source(self, source):
         if source not in self._source_name_to_id:

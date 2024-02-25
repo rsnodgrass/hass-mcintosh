@@ -16,6 +16,7 @@ from homeassistant.helpers import selector
 from pyavcontrol import DeviceModelLibrary
 from pyavcontrol.const import BAUD_RATES
 from pyavcontrol.helper import construct_async_client
+from pyavcontrol.library import filter_models_by_regex
 
 from . import get_connection_overrides
 from .const import CONF_BAUD_RATE, CONF_MODEL, DEFAULT_URL, DOMAIN
@@ -28,18 +29,6 @@ ERROR_UNSUPPORTED = {'base': 'unsupported'}
 
 class UnsupportedDeviceError(HomeAssistantError):
     """Error for unsupported device types."""
-
-
-def filter_models(prefix: str):
-    # load all the supported models from pyavcontrol and filter down to only McIntosh models
-    supported_models = DeviceModelLibrary.create().supported_models()
-
-    # NOTE: in future may need to be more selective to only include mcintosh_*
-    # that meet specific criteria...e.g. not all may be media players.
-    # Alternatively since new physical models are not released often, this
-    # could also be a static list of models! (PROBABLY BEST OPTION)
-    filtered_models = [x for x in supported_models if x.startswith(prefix)]
-    return filtered_models
 
 
 class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -84,8 +73,6 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
         # that meet specific criteria...e.g. not all may be media players.
         # Alternatively since new physical models are not released often, this
         # could also be a static list of models! (PROBABLY BEST OPTION)
-        mcintosh_models = filter_models('mcintosh')
-        LOG.debug(f'Starting McIntosh config flow: {mcintosh_models}')
 
         if user_input is not None:
             LOG.info(f'Config flow user input: {user_input}')
@@ -94,9 +81,6 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
             url = user_input.get(CONF_URL).strip()
 
             try:
-                if model_id not in mcintosh_models:
-                    raise UnsupportedDeviceError
-
                 loop = asyncio.get_event_loop()
                 config_overrides = get_connection_overrides(user_input)
 
@@ -128,6 +112,10 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(title='McIntosh', data=user_input)
 
         # no user input yet, display the initial configuration form
+        supported_models = DeviceModelLibrary.create().supported_models()
+        mcintosh_models = filter_models_by_regex(supported_models, 'mcintosh')
+        LOG.debug(f'Starting McIntosh config flow: %s', mcintosh_models)
+
         schema = McIntoshConfigFlow.step_user_schema(mcintosh_models)
         return self.async_show_form(step_id='user', data_schema=schema, errors=errors)
 
