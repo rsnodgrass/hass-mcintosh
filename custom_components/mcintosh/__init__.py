@@ -21,14 +21,13 @@ PLATFORMS = [Platform.MEDIA_PLAYER]
 
 
 @dataclass
-class McIntoshData:
+class DeviceClientDetails:
     client: DeviceClient
     config: Mapping[str, Any]
 
 
-async def connect_client_from_config(hass: HomeAssistant, entry: ConfigEntry):
+async def connect_to_device(hass: HomeAssistant, entry: ConfigEntry):
     config = entry.data
-
     url = config[CONF_URL]
     model_id = config[CONF_MODEL]
 
@@ -38,16 +37,16 @@ async def connect_client_from_config(hass: HomeAssistant, entry: ConfigEntry):
             model_id, url, hass.loop, connection_config=get_connection_overrides(config)
         )
     except Exception as e:
-        raise ConfigEntryNotReady(f'Unable to connect to {model_id} / {url}') from e
+        raise ConfigEntryNotReady(f'Connection failed to {model_id} @ {url}') from e
 
     # save under the entry id so multiple devices can be added to a single HASS
-    hass.data[DOMAIN][entry.entry_id] = McIntoshData(client, config)
+    hass.data[DOMAIN][entry.entry_id] = DeviceClientDetails(client, config)
 
 
 async def config_update_listener(hass: HomeAssistant, config_entry: ConfigEntry):
     """Handle options update."""
-    LOG.info(f'McIntosh reconfigured: {config_entry}')
-    await connect_client_from_config(hass, config_entry)
+    LOG.info(f'Reconnecting to device after reconfiguration: {config_entry}')
+    await connect_to_device(hass, config_entry)
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
@@ -55,11 +54,12 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
     # assert config_entry.unique_id  # FIXME
     hass.data.setdefault(DOMAIN, {})
 
-    # connect to the device
-    await connect_client_from_config(hass, config_entry)
+    await connect_to_device(hass, config_entry)
 
     # FIXME: whenever config options are changed by user, callback config_update_lister
-    # entry.async_on_unload(entry.add_update_listener(config_update_listener))
+    config_entry.async_on_unload(
+        config_entry.add_update_listener(config_update_listener)
+    )
 
     # forward the setup to the media_player platform
     # hass.async_create_task(

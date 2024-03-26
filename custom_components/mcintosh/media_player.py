@@ -18,7 +18,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from pyavcontrol import DeviceClient
 
-from . import McIntoshData
+from . import DeviceClientDetails
 from .const import CONF_MODEL, CONF_SOURCES, DOMAIN
 
 LOG = logging.getLogger(__name__)
@@ -32,12 +32,13 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    data: McIntoshData = hass.data[DOMAIN][config_entry.entry_id]
-
-    sources = _get_sources(config_entry)
-
-    entities = [McIntoshMediaPlayer(config_entry, data.client)]
-    async_add_entities(new_entities=entities, update_before_add=True)
+    if data := hass.data[DOMAIN][config_entry.entry_id]:
+        entities = [McIntoshMediaPlayer(config_entry, data)]
+        async_add_entities(new_entities=entities, update_before_add=True)
+    else:
+        LOG.error(
+            f'Missing pre-connected client for {config_entry}, cannot create MediaPlayer'
+        )
 
 
 @core.callback
@@ -71,9 +72,10 @@ class McIntoshMediaPlayer(MediaPlayerEntity):
     )
     _attr_has_entity_name = True
 
-    def __init__(self, config_entry: ConfigEntry, client: DeviceClient) -> None:
+    def __init__(self, config_entry: ConfigEntry, details: DeviceClientDetails) -> None:
         self._config_entry = config_entry
-        self._client = client
+        self._details = details
+        self._client = details.client
 
         # self._attr_name = config_entry.data[CONF_NAME]
         self._model_id = config_entry.data[CONF_MODEL]
@@ -83,7 +85,7 @@ class McIntoshMediaPlayer(MediaPlayerEntity):
         )
 
         # name for this device should be manufacturer + the top most supported model as default
-        device_model = client.model()
+        device_model = self._client.model()
         manufacturer = (device_model.info.get('manufacturer', 'McIntosh'),)
         if supported_model_names := device_model.get('models', []):
             model_name = supported_model_names[0]
@@ -96,6 +98,8 @@ class McIntoshMediaPlayer(MediaPlayerEntity):
                 ] = supported_model_names  # FIXME
         else:
             model_name = 'Media Player'
+
+        # sources = _get_sources(config_entry)
 
         # NOTE: This currently only supports the MAIN zone for media devices, but in future
         # may want to add support for additional zones:
