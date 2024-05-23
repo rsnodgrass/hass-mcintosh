@@ -1,14 +1,18 @@
 [tool.isort]
-profile = "black"
 force_to_top = [ "logging" ]
 balanced_wrapping = true
 
-[black]
-line-length = 90
+[tool.ruff]
+line-length = 88
+indent-width = 4
+
+[tool.ruff.format]
+quote-style = "single" # Use a single quote instead of double
 
 [tool.pycln]
 all = true
 
 [tool.refurb]
+python_version = "3.11"
 quiet = true
-ignore = []
+ignore = [ "FURB184" ]
