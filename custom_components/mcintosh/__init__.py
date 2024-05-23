@@ -1,9 +1,11 @@
 """
 The McIntosh A/V integration.
 """
+
 import logging
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -12,7 +14,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from pyavcontrol import DeviceClient
 from pyavcontrol.helper import construct_async_client
 
-from .const import CONF_BAUD_RATE, CONF_MODEL, CONF_URL, DOMAIN
+from .const import CONF_MODEL, CONF_URL, DOMAIN  # CONF_BAUD_RATE
 from .utils import get_connection_overrides
 
 LOG = logging.getLogger(__name__)

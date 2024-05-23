@@ -1,4 +1,5 @@
 """Config flow for easy setup"""
+
 from __future__ import annotations
 
 import logging
@@ -10,7 +11,7 @@ from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.const import CONF_URL
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 from pyavcontrol import DeviceModelLibrary
@@ -115,7 +116,7 @@ class McIntoshConfigFlow(ConfigFlow, domain=DOMAIN):
         # Alternatively since new physical models are not released often, this
         # could also be a static list of models.
         mcintosh_models = filter_models_by_regex(supported_models, 'mcintosh')
-        LOG.debug(f'Starting McIntosh config flow: %s', mcintosh_models)
+        LOG.debug('Starting McIntosh config flow: %s', mcintosh_models)
 
         schema = McIntoshConfigFlow.step_user_schema(mcintosh_models)
         return self.async_show_form(step_id='user', data_schema=schema, errors=errors)

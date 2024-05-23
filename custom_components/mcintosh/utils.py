@@ -1,4 +1,5 @@
 """Various utilities for the McIntosh integration"""
+
 from .const import CONF_BAUD_RATE
 
 

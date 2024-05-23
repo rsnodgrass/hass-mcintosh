@@ -16,7 +16,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from pyavcontrol import DeviceClient
 
 from . import DeviceClientDetails
 from .const import CONF_MODEL, CONF_SOURCES, DOMAIN
@@ -60,7 +59,6 @@ def _get_sources(config_entry):
 
 
 class McIntoshMediaPlayer(MediaPlayerEntity):
-
     _attr_device_class = MediaPlayerDeviceClass.RECEIVER
     _attr_supported_features = (
         MediaPlayerEntityFeature.VOLUME_MUTE
@@ -93,9 +91,9 @@ class McIntoshMediaPlayer(MediaPlayerEntity):
             # if multiple model names are supported by this client, include them in the attributes
             # for this media player as a UI convenience for users
             if len(supported_model_names) > 1:
-                self._attr_supported_models[
-                    'supported_models'
-                ] = supported_model_names  # FIXME
+                self._attr_supported_models['supported_models'] = (
+                    supported_model_names  # FIXME
+                )
         else:
             model_name = 'Media Player'
 
@@ -103,7 +101,7 @@ class McIntoshMediaPlayer(MediaPlayerEntity):
 
         # NOTE: This currently only supports the MAIN zone for media devices, but in future
         # may want to add support for additional zones:
-        zones = ['Main']
+        # zones = ['Main']
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self._attr_unique_id)},
             manufacturer=manufacturer,
@@ -174,7 +172,7 @@ class McIntoshMediaPlayer(MediaPlayerEntity):
 
     async def async_update(self):
         """Retrieve the latest state."""
-        LOG.debug(f'Updating %s', self.unique_id)
+        LOG.debug('Updating %s', self.unique_id)
 
         # poll the client for latest state for the device
         try:
