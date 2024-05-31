@@ -15,6 +15,9 @@
 
 My MX160 was broken in shipping and so I no longer have a device for testing or development so progress has been slow. This integration and underlying libraries is expected to be completed late 2024.
 
+## LOOKING TO BUY MX160 or MX170
+
+If you have an MX160 or MX170 you are looking to sell, please contact me.
 
 ## Support
 
