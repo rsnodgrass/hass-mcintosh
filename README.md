@@ -1,4 +1,4 @@
-# McIntosh A/V Control for Home Assistant
+# McIntosh A/V Control for Home Assistant (IMPLEMENTATION IN PROGRESS)
 
 ![beta_badge](https://img.shields.io/badge/maturity-Beta-yellow.png)
 ![release_badge](https://img.shields.io/github/v/release/rsnodgrass/hass-mcintosh.svg)
@@ -9,12 +9,16 @@
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=WREP29UDAMB6G)
 [![Buy Me A Coffee](https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg)](https://buymeacoffee.com/DYks67r)
 
-
 ![McIntosh Logo](https://raw.githubusercontent.com/rsnodgrass/hass-mcintosh/main/brands/logo.png)
+
+# THIS DO NOT WORK! THIS IS IN PROGRESS.
+
+My MX160 was broken in shipping and so I no longer have a device for testing or development so progress has been slow. This integration and underlying libraries is expected to be completed late 2024.
+
 
 ## Support
 
-Visit the [community support discussion thread](https://community.home-assistant.io/t/mcintosh-dayton-audio-sonance-multi-zone-amps/450908) for issues with this integration. If you have a code change or bug fix, feel free to submit a Pull Request.
+Visit the [community support discussion thread](XXXXXX) for issues with this integration. If you have a code change or bug fix, feel free to submit a Pull Request.
 
 ### Supported Devices
 
